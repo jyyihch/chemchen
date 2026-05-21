@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>秘魯歷史長河：探尋黃金國度的四個紀元</title>
+    <!-- 引入 Tailwind CSS 進行精美 UI 渲染 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Lucide Icons (藉由 SVG 優化載入) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #0f172a; /* 深色調畫廊氛圍 */
+        }
+        .era-card {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .map-pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.4; }
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen overflow-x-hidden pb-12">
+
+    <!-- 頂部精美橫幅 (Hero Header) -->
+    <header class="relative py-12 px-6 border-b border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 overflow-hidden">
+        <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:16px_16px]"></div>
+        <div class="max-w-6xl mx-auto text-center relative z-10">
+            <span class="px-3 py-1 text-xs font-bold uppercase tracking-widest bg-amber-500/10 text-amber-400 rounded-full border border-amber-500/20">
+                南美文明之光
+            </span>
+            <h1 class="mt-4 text-3xl md:text-5xl font-black bg-gradient-to-r from-amber-400 via-orange-400 to-red-500 bg-clip-text text-transparent">
+                秘魯歷史長河
+            </h1>
+            <p class="mt-3 text-slate-400 max-w-2xl mx-auto text-sm md:text-base">
+                跨越四萬年，從美洲最早的文明古城、黃金帝國印加，到璀璨的殖民時代與蓬勃發展的現代共和國。點擊各個紀元，開始您的探索旅程。
+            </p>
+        </div>
+    </header>
+
+    <!-- 主內容區：上、下/左、右響應式版面 -->
+    <main class="max-w-6xl mx-auto px-4 mt-8">
+        
+        <!-- 核心互動區：12 格網格系統 -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- 左側/上方：互動時間軸與紀元詳細資訊 (佔 7 格) -->
+            <div class="lg:col-span-7 flex flex-col space-y-6">
+                
+                <!-- 橫向時間軸控制器 -->
+                <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-xl">
+                    <h3 class="text-xs font-semibold text-slate-400 mb-3 tracking-wider uppercase">選擇歷史時期</h3>
+                    <div class="grid grid-cols-4 gap-2">
+                        <!-- 前西班牙 -->
+                        <button onclick="switchEra('pre-spanish')" id="btn-pre-spanish" class="era-tab py-3 px-1 md:px-2 rounded-xl text-center transition-all duration-300 border bg-amber-950/20 border-amber-500/30 text-amber-400 font-bold text-xs md:text-sm">
+                            <span class="block text-[10px] opacity-60 mb-1">~1432</span>
+                            前西班牙
+                        </button>
+                        <!-- 印加帝國 -->
+                        <button onclick="switchEra('inca')" id="btn-inca" class="era-tab py-3 px-1 md:px-2 rounded-xl text-center transition-all duration-300 border border-slate-800 text-slate-400 hover:border-slate-700 text-xs md:text-sm">
+                            <span class="block text-[10px] opacity-60 mb-1">1432-1533</span>
+                            印加帝國
+                        </button>
+                        <!-- 西班牙殖民 -->
+                        <button onclick="switchEra('colonial')" id="btn-colonial" class="era-tab py-3 px-1 md:px-2 rounded-xl text-center transition-all duration-300 border border-slate-800 text-slate-400 hover:border-slate-700 text-xs md:text-sm">
+                            <span class="block text-[10px] opacity-60 mb-1">1533-1821</span>
+                            西班牙殖民
+                        </button>
+                        <!-- 共和國獨立 -->
+                        <button onclick="switchEra('republic')" id="btn-republic" class="era-tab py-3 px-1 md:px-2 rounded-xl text-center transition-all duration-300 border border-slate-800 text-slate-400 hover:border-slate-700 text-xs md:text-sm">
+                            <span class="block text-[10px] opacity-60 mb-1">1821~至今</span>
+                            共和國
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 紀元詳細資料展示板 (動態更新) -->
+                <div id="era-display-panel" class="bg-slate-900 rounded-3xl border border-slate-800 p-6 md:p-8 shadow-2xl relative overflow-hidden era-card min-h-[380px] flex flex-col justify-between">
+                    <!-- 背景斑駁裝飾 -->
+                    <div class="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-amber-500/5 blur-3xl"></div>
+                    
+                    <div>
+                        <!-- 標題與年代 -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-4 border-b border-slate-800">
+                            <div>
+                                <h2 id="panel-title" class="text-2xl md:text-3xl font-black text-amber-400 tracking-wide">
+                                    前西班牙時期
+                                </h2>
+                                <p id="panel-years" class="text-sm text-slate-400 font-mono mt-1">
+                                    公元前 20000 － 1432 年
+                                </p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full font-semibold border border-amber-500/20" id="panel-symbol-pill">
+                                    美洲文明搖籃
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- 核心特徵 -->
+                        <div class="mt-6">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">核心特徵與代表文明</h4>
+                            <p id="panel-features" class="text-lg text-slate-100 font-medium">
+                                卡拉爾 (Caral)、查文 (Chavín)、納斯卡 (Nazca) 等多樣性高原與海岸文明。
+                            </p>
+                        </div>
+
+                        <!-- 歷史詳細描述 -->
+                        <div class="mt-6">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">歷史脈絡與深度解讀</h4>
+                            <p id="panel-desc" class="text-slate-300 leading-relaxed text-sm md:text-base">
+                                在印加帝國崛起前，秘魯的大地上早已歷經了數萬年的文明繁衍。從南美最古老的城市卡拉爾金字塔，到具有神祕宗教象徵的查文神廟，以及在荒漠留下巨大謎團的納斯卡地畫，這些前驅文明奠定了秘魯乃至整個南美洲深厚的文化底蘊。
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 象徵意義區 -->
+                    <div class="mt-8 pt-4 border-t border-slate-800/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <span class="text-xs text-slate-500 block">文化遺產地位</span>
+                            <span id="panel-legacy" class="text-sm text-amber-500/90 font-medium">開創了早期美洲發達的農業、宗教與建築美學體系</span>
+                        </div>
+                        <div class="flex items-center space-x-2 self-end sm:self-auto text-xs text-slate-400">
+                            <span>探索地圖標記</span>
+                            <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 右側/下方：地圖定位器與秘魯小知識 (佔 5 格) -->
+            <div class="lg:col-span-5 flex flex-col space-y-6">
+                
+                <!-- 秘魯互動向量地圖 -->
+                <div class="bg-slate-900 rounded-3xl border border-slate-800 p-6 shadow-xl flex flex-col justify-between items-center h-full min-h-[400px]">
+                    <div class="w-full mb-4 flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-slate-300">
+                            秘魯歷史地理定位儀
+                        </h3>
+                        <span class="text-xs text-slate-500 font-mono">
+                            PERU MAP VISUALIZER
+                        </span>
+                    </div>
+
+                    <!-- 秘魯地圖 SVG (抽象擬真幾何風格，帶有文明地標位置) -->
+                    <div class="relative w-full max-w-[280px] h-[320px] flex items-center justify-center">
+                        <svg class="w-full h-full text-slate-800 transition-all duration-500" viewBox="0 0 300 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- 秘魯主體輪廓 -->
+                            <path d="M 120 20 L 155 10 L 180 30 L 220 50 L 255 105 L 265 145 L 285 185 L 290 220 L 275 250 L 245 285 L 220 295 L 195 270 L 180 250 L 160 210 L 135 180 L 105 160 L 90 130 L 100 100 L 115 50 Z" 
+                                  fill="#1e293b" stroke="#334155" stroke-width="2" stroke-linejoin="round" />
+                            
+                            <!-- 亞馬遜雨林綠化象徵邊界 -->
+                            <path d="M 180 30 L 220 50 L 255 105 L 265 145 L 285 185 L 290 220 L 275 250 L 230 250 L 210 210 L 180 180 L 150 140 Z" 
+                                  fill="#0f172a" fill-opacity="0.5" />
+
+                            <!-- 安地斯山脈中央中軸線 (虛線) -->
+                            <path d="M 140 30 Q 180 150 240 280" stroke="#f59e0b" stroke-dasharray="4,4" stroke-opacity="0.3" stroke-width="2" />
+
+                            <!-- 卡拉爾文明 (Caral) -->
+                            <g id="map-caral" class="map-node opacity-100 transition-all duration-300">
+                                <circle cx="135" cy="180" r="14" fill="#f59e0b" fill-opacity="0.15" />
+                                <circle class="map-pulse" cx="135" cy="180" r="7" fill="#d97706" />
+                                <circle cx="135" cy="180" r="3" fill="#ffffff" />
+                            </g>
+
+                            <!-- 查文 (Chavín) -->
+                            <g id="map-chavin" class="map-node opacity-100 transition-all duration-300">
+                                <circle cx="150" cy="140" r="14" fill="#f59e0b" fill-opacity="0.15" />
+                                <circle class="map-pulse" cx="150" cy="140" r="7" fill="#d97706" />
+                                <circle cx="150" cy="140" r="3" fill="#ffffff" />
+                            </g>
+
+                            <!-- 納斯卡地畫 (Nazca) -->
+                            <g id="map-nazca" class="map-node opacity-100 transition-all duration-300">
+                                <circle cx="180" cy="250" r="14" fill="#f59e0b" fill-opacity="0.15" />
+                                <circle class="map-pulse" cx="180" cy="250" r="7" fill="#d97706" />
+                                <circle cx="180" cy="250" r="3" fill="#ffffff" />
+                            </g>
+
+                            <!-- 庫斯科 (Cusco) - 印加首都 -->
+                            <g id="map-cusco" class="map-node opacity-30 transition-all duration-300">
+                                <circle cx="215" cy="255" r="16" fill="#fbbf24" fill-opacity="0.2" />
+                                <circle class="map-pulse" cx="215" cy="255" r="8" fill="#eab308" />
+                                <polygon points="215,251 218,258 211,255" fill="#ffffff" />
+                            </g>
+
+                            <!-- 馬丘比丘 (Machu Picchu) -->
+                            <g id="map-machu-picchu" class="map-node opacity-30 transition-all duration-300">
+                                <circle cx="205" cy="245" r="14" fill="#fbbf24" fill-opacity="0.15" />
+                                <circle class="map-pulse" cx="205" cy="245" r="6" fill="#ca8a04" />
+                                <circle cx="205" cy="245" r="2.5" fill="#ffffff" />
+                            </g>
+
+                            <!-- 利馬 (Lima) - 殖民首都與共和國首都 -->
+                            <g id="map-lima" class="map-node opacity-30 transition-all duration-300">
+                                <circle cx="145" cy="210" r="16" fill="#f43f5e" fill-opacity="0.2" />
+                                <circle class="map-pulse" cx="145" cy="210" r="8" fill="#e11d48" />
+                                <rect x="141" y="206" width="8" height="8" fill="#ffffff" transform="rotate(45 145 210)" />
+                            </g>
+
+                            <!-- 秘魯銀礦區 (Potosí 概念方向 / 瓦斯卡蘭) -->
+                            <g id="map-silver-mines" class="map-node opacity-30 transition-all duration-300">
+                                <circle cx="175" cy="170" r="12" fill="#ef4444" fill-opacity="0.1" />
+                                <circle class="map-pulse" cx="175" cy="170" r="5" fill="#b91c1c" />
+                                <circle cx="175" cy="170" r="2" fill="#ffffff" />
+                            </g>
+                        </svg>
+
+                        <!-- 地圖標籤顯示 (漂浮卡) -->
+                        <div id="map-label" class="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-slate-950/90 px-4 py-1.5 rounded-full border border-amber-500/30 text-[11px] font-bold tracking-wide text-amber-400 text-center shadow-lg whitespace-nowrap">
+                            當前焦點遺址：卡拉爾、查文、納斯卡
+                        </div>
+                    </div>
+
+                    <!-- 指南說明 -->
+                    <p class="text-xs text-slate-500 text-center">
+                        *地圖上各點代表該時期重點發展文明分布核心區域
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- 區段二：歷史全貌對比表格卡片 (完美視覺化原始表格) -->
+        <section class="mt-16">
+            <div class="flex items-center space-x-3 mb-6">
+                <span class="w-8 h-1 bg-amber-500 rounded-full"></span>
+                <h2 class="text-2xl font-extrabold tracking-tight text-white">秘魯歷史關鍵時期對比</h2>
+            </div>
+
+            <!-- 自適應響應式精美表格 -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                <!-- 桌面版：傳統表格升級 -->
+                <div class="hidden md:block overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-950 text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-800">
+                                <th class="p-5">時期</th>
+                                <th class="p-5">年代</th>
+                                <th class="p-5">特徵文明/事件</th>
+                                <th class="p-5">核心象徵意義</th>
+                                <th class="p-5 text-right">探索</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800 text-sm">
+                            <tr class="hover:bg-slate-850/40 transition-colors group cursor-pointer" onclick="switchEra('pre-spanish')">
+                                <td class="p-5 font-bold text-amber-400 group-hover:text-amber-300">前西班牙時期</td>
+                                <td class="p-5 text-slate-300 font-mono">公元前 20000 － 1432</td>
+                                <td class="p-5 text-slate-300">卡拉爾、查文、納斯卡等文明</td>
+                                <td class="p-5">
+                                    <span class="px-2.5 py-1 text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md font-semibold">
+                                        美洲文明搖籃
+                                    </span>
+                                </td>
+                                <td class="p-5 text-right text-amber-500 group-hover:translate-x-1 transition-transform">→</td>
+                            </tr>
+                            <tr class="hover:bg-slate-850/40 transition-colors group cursor-pointer" onclick="switchEra('inca')">
+                                <td class="p-5 font-bold text-yellow-400 group-hover:text-yellow-300">印加帝國</td>
+                                <td class="p-5 text-slate-300 font-mono">1432 － 1533</td>
+                                <td class="p-5 text-slate-300">四方之地、馬丘比丘</td>
+                                <td class="p-5">
+                                    <span class="px-2.5 py-1 text-xs bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded-md font-semibold">
+                                        南美最大古文明
+                                    </span>
+                                </td>
+                                <td class="p-5 text-right text-yellow-500 group-hover:translate-x-1 transition-transform">→</td>
+                            </tr>
+                            <tr class="hover:bg-slate-850/40 transition-colors group cursor-pointer" onclick="switchEra('colonial')">
+                                <td class="p-5 font-bold text-rose-400 group-hover:text-rose-300">西班牙殖民</td>
+                                <td class="p-5 text-slate-300 font-mono">1533 － 1821</td>
+                                <td class="p-5 text-slate-300">利馬殖民建築、銀礦開採</td>
+                                <td class="p-5">
+                                    <span class="px-2.5 py-1 text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-md font-semibold">
+                                        西班牙文化影響
+                                    </span>
+                                </td>
+                                <td class="p-5 text-right text-rose-500 group-hover:translate-x-1 transition-transform">→</td>
+                            </tr>
+                            <tr class="hover:bg-slate-850/40 transition-colors group cursor-pointer" onclick="switchEra('republic')">
+                                <td class="p-5 font-bold text-emerald-400 group-hover:text-emerald-300">共和國獨立後</td>
+                                <td class="p-5 text-slate-300 font-mono">1821 － 至今</td>
+                                <td class="p-5 text-slate-300">政治動盪、民主化、現代化</td>
+                                <td class="p-5">
+                                    <span class="px-2.5 py-1 text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-semibold">
+                                        秘魯民族國家形成
+                                    </span>
+                                </td>
+                                <td class="p-5 text-right text-emerald-500 group-hover:translate-x-1 transition-transform">→</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 手機版：卡片式列表 -->
+                <div class="block md:hidden divide-y divide-slate-800">
+                    <!-- 卡片 1 -->
+                    <div class="p-5 hover:bg-slate-850/40" onclick="switchEra('pre-spanish')">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-bold text-amber-400 text-base">前西班牙時期</span>
+                            <span class="text-xs px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded">美洲文明搖籃</span>
+                        </div>
+                        <div class="text-xs text-slate-400 font-mono mb-2">年代：公元前 20000 － 1432</div>
+                        <div class="text-sm text-slate-300"><span class="text-slate-500 text-xs">特徵：</span>卡拉爾、查文、納斯卡等文明</div>
+                    </div>
+                    <!-- 卡片 2 -->
+                    <div class="p-5 hover:bg-slate-850/40" onclick="switchEra('inca')">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-bold text-yellow-400 text-base">印加帝國</span>
+                            <span class="text-xs px-2 py-0.5 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded">南美最大古文明</span>
+                        </div>
+                        <div class="text-xs text-slate-400 font-mono mb-2">年代：1432 － 1533</div>
+                        <div class="text-sm text-slate-300"><span class="text-slate-500 text-xs">特徵：</span>四方之地、馬丘比丘</div>
+                    </div>
+                    <!-- 卡片 3 -->
+                    <div class="p-5 hover:bg-slate-850/40" onclick="switchEra('colonial')">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-bold text-rose-400 text-base">西班牙殖民</span>
+                            <span class="text-xs px-2 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded">西班牙文化影響</span>
+                        </div>
+                        <div class="text-xs text-slate-400 font-mono mb-2">年代：1533 － 1821</div>
+                        <div class="text-sm text-slate-300"><span class="text-slate-500 text-xs">特徵：</span>利馬殖民建築、銀礦開採</div>
+                    </div>
+                    <!-- 卡片 4 -->
+                    <div class="p-5 hover:bg-slate-850/40" onclick="switchEra('republic')">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-bold text-emerald-400 text-base">共和國獨立後</span>
+                            <span class="text-xs px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">秘魯民族國家形成</span>
+                        </div>
+                        <div class="text-xs text-slate-400 font-mono mb-2">年代：1821 － 至今</div>
+                        <div class="text-sm text-slate-300"><span class="text-slate-500 text-xs">特徵：</span>政治動盪、民主化、現代化</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 區段三：秘魯歷史問答小遊戲 (提高趣味性) -->
+        <section class="mt-16 bg-gradient-to-r from-slate-900 to-slate-950 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                    <span class="text-xs font-bold text-amber-500 uppercase tracking-widest">知識隨堂考</span>
+                    <h2 class="text-xl md:text-2xl font-black text-white mt-1">
+                        測驗：您對秘魯歷史了解多少？
+                    </h2>
+                </div>
+                <div class="bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 text-sm text-slate-300">
+                    得分: <span id="quiz-score" class="font-mono font-bold text-amber-500">0</span> / 3
+                </div>
+            </div>
+
+            <!-- 問題區 -->
+            <div class="bg-slate-950/40 p-5 rounded-2xl border border-slate-800/80">
+                <p id="quiz-question" class="text-base md:text-lg font-bold text-slate-100">
+                    載入中...
+                </p>
+                <div id="quiz-options" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                    <!-- 選項動態生成 -->
+                </div>
+                
+                <!-- 回應反饋 banner (不使用瀏覽器原生 alert) -->
+                <div id="quiz-feedback" class="mt-4 p-3 rounded-xl hidden text-center font-semibold text-sm">
+                    正確解答！
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 頁尾 -->
+    <footer class="mt-20 border-t border-slate-900 py-8 px-4 text-center text-slate-500 text-xs">
+        <p>© 2026 秘魯歷史數位博物館. 版權所有.</p>
+        <p class="mt-1">結合地理定位、高質感互動地圖及年代對照，探索黃金帝國的源流。</p>
+    </footer>
+
+    <!-- JavaScript 互動邏輯 -->
+    <script>
+        // 四大時期數據庫
+        const eraData = {
+            'pre-spanish': {
+                title: '前西班牙時期',
+                years: '公元前 20000 － 1432 年',
+                features: '卡拉爾 (Caral)、查文 (Chavín)、納斯卡 (Nazca) 等多樣性高原與海岸文明。',
+                symbol: '美洲文明搖籃',
+                desc: '在印加帝國崛起前，秘魯的大地上早已歷經了數萬年的文明繁衍。從南美最古老的城市卡拉爾金字塔，到具有神祕宗教象徵的查文神廟，以及在荒漠留下巨大謎團的納斯卡地畫，這些前驅文明奠定了秘魯乃至整個南美洲深厚的文化底蘊。',
+                legacy: '開創了早期美洲發達的農業、宗教、天文曆法與大型石造建築。',
+                styleColor: 'text-amber-400',
+                btnClass: 'bg-amber-950/20 border-amber-500/30 text-amber-400 font-bold',
+                mapHighlight: ['map-caral', 'map-chavin', 'map-nazca'],
+                labelText: '當前焦點遺址：卡拉爾文明、查文神殿、納斯卡巨畫'
+            },
+            'inca': {
+                title: '印加帝國',
+                years: '1432 － 1533 年',
+                features: '「四方之地」(Tawantinsuyu) 橫跨安地斯山脈，代表作為天空之城馬丘比丘。',
+                symbol: '南美最大古文明',
+                desc: '印加帝國在15世紀迅速擴張，建立起北起哥倫比亞、南至智利中部的龐大網絡。他們建造了驚人的「印加路網」，庫斯科作為帝國的心臟，象徵著太陽神的至高權威。即便在今日，馬丘比丘巍峨的梯田與巨石拼貼依然震懾人心。',
+                legacy: '無砂漿巨石工程、發達的奇普（結繩記事）系統與高度集權的社會組織。',
+                styleColor: 'text-yellow-400',
+                btnClass: 'bg-yellow-950/20 border-yellow-500/30 text-yellow-400 font-bold',
+                mapHighlight: ['map-cusco', 'map-machu-picchu'],
+                labelText: '當前焦點遺址：印加首都庫斯科、馬丘比丘失落之城'
+            },
+            'colonial': {
+                title: '西班牙殖民時期',
+                years: '1533 － 1821 年',
+                features: '「王者之城」利馬的巴洛克式大建築、波托西及安地斯銀礦的大量開採。',
+                symbol: '西班牙文化影響',
+                desc: '隨著1533年皮薩羅征服印加，秘魯變成了西班牙帝國在南美最重要的副王區。無數白銀與黃金源源不絕送往歐洲。此時期不僅引進了歐洲建築、語言與宗教，也同時見證了原住民的苦難以及日後融合出的麥士蒂索（混血）璀璨文化。',
+                legacy: '世界文化遺產利馬古城區、巴洛克式宗教建築，以及西語及天主教體系。',
+                styleColor: 'text-rose-400',
+                btnClass: 'bg-rose-950/20 border-rose-500/30 text-rose-400 font-bold',
+                mapHighlight: ['map-lima', 'map-silver-mines'],
+                labelText: '當前焦點遺址：殖民中心利馬古城、阿雷基帕銀礦脈絡'
+            },
+            'republic': {
+                title: '共和國獨立後',
+                years: '1821 年 － 至今',
+                features: '聖馬丁宣告獨立，近代歷經多次政局動盪、民主重塑以及近年高速的經濟現代化。',
+                symbol: '秘魯民族國家形成',
+                desc: '1821年7月28日秘魯正式宣告獨立。獨立後的道路充滿挑戰，從硝石戰爭的沉重打擊，到20世紀的威權與民主輪替。今日的秘魯，已是南美發展最快的經濟體之一，以其享譽全球的頂級秘魯美食（Gastronomy）、蓬勃的旅遊業與豐富礦產傲視國際。',
+                legacy: '融合印加傳統、西歐和亞非移民的多族群「現代秘魯認同」與美食文化。',
+                styleColor: 'text-emerald-400',
+                btnClass: 'bg-emerald-950/20 border-emerald-500/30 text-emerald-400 font-bold',
+                mapHighlight: ['map-lima'],
+                labelText: '當前焦點遺址：現代首都利馬、全球觀光重鎮與經濟港區'
+            }
+        };
+
+        // 切換紀元邏輯
+        function switchEra(eraKey) {
+            const data = eraData[eraKey];
+            if (!data) return;
+
+            // 1. 更新按鈕樣式
+            document.querySelectorAll('.era-tab').forEach(btn => {
+                btn.className = "era-tab py-3 px-1 md:px-2 rounded-xl text-center transition-all duration-300 border border-slate-800 text-slate-400 hover:border-slate-700 text-xs md:text-sm";
+            });
+            const activeBtn = document.getElementById(`btn-${eraKey}`);
+            if (activeBtn) {
+                activeBtn.className = `era-tab py-3 px-1 md:px-2 rounded-xl text-center transition-all duration-300 border ${data.btnClass} text-xs md:text-sm`;
+            }
+
+            // 2. 更新面板資訊
+            const panel = document.getElementById('era-display-panel');
+            
+            // 漸變動畫效果
+            panel.style.opacity = '0.3';
+            panel.style.transform = 'translateY(10px)';
+            
+            setTimeout(() => {
+                document.getElementById('panel-title').textContent = data.title;
+                document.getElementById('panel-title').className = `text-2xl md:text-3xl font-black ${data.styleColor} tracking-wide`;
+                document.getElementById('panel-years').textContent = data.years;
+                document.getElementById('panel-features').textContent = data.features;
+                document.getElementById('panel-desc').textContent = data.desc;
+                document.getElementById('panel-legacy').textContent = data.legacy;
+                document.getElementById('panel-legacy').className = `text-sm ${data.styleColor}/90 font-medium`;
+                
+                const pill = document.getElementById('panel-symbol-pill');
+                pill.textContent = data.symbol;
+                
+                // 動態調整小藥丸的配色樣式
+                if (eraKey === 'pre-spanish') {
+                    pill.className = "text-xs px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full font-semibold border border-amber-500/20";
+                } else if (eraKey === 'inca') {
+                    pill.className = "text-xs px-3 py-1 bg-yellow-500/10 text-yellow-400 rounded-full font-semibold border border-yellow-500/20";
+                } else if (eraKey === 'colonial') {
+                    pill.className = "text-xs px-3 py-1 bg-rose-500/10 text-rose-400 rounded-full font-semibold border border-rose-500/20";
+                } else if (eraKey === 'republic') {
+                    pill.className = "text-xs px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full font-semibold border border-emerald-500/20";
+                }
+
+                panel.style.opacity = '1';
+                panel.style.transform = 'translateY(0)';
+            }, 200);
+
+            // 3. 更新地圖節點點亮狀態
+            document.querySelectorAll('.map-node').forEach(node => {
+                node.style.opacity = '0.15';
+            });
+            data.mapHighlight.forEach(nodeId => {
+                const element = document.getElementById(nodeId);
+                if (element) {
+                    element.style.opacity = '1';
+                }
+            });
+
+            // 4. 更新地圖標籤文字
+            document.getElementById('map-label').textContent = data.labelText;
+        }
+
+        // --- 歷史知識趣味問答邏輯 ---
+        const quizData = [
+            {
+                q: "印加帝國的官方語言/自稱「四方之地」，其原住民克丘亞語的讀音是？",
+                options: ["Tawantinsuyu (塔萬廷蘇尤)", "Machu Picchu (馬丘比丘)", "Chavín (查文)", "Khipu (奇普)"],
+                correct: 0,
+                explain: "Tawantinsuyu 意思是「四個聯合在一起的疆土」，是印加帝國的正式自稱！"
+            },
+            {
+                q: "被譽為「美洲文明搖籃」，且在公元前3000年左右即建有巨大金字塔的秘魯最古老遺址是？",
+                options: ["馬丘比丘", "卡拉爾 (Caral)", "查文神廟", "庫斯科"],
+                correct: 1,
+                explain: "卡拉爾是美洲已知最古老的城市文明，與埃及金字塔群同屬一時期，享有美洲文明搖籃之美譽。"
+            },
+            {
+                q: "西班牙殖民統治時期，皮薩羅於 1535 年建立並作為西班牙副王區首都的「王者之城」是哪座城市？",
+                options: ["庫斯科", "阿雷基帕", "利馬 (Lima)", "波托西"],
+                correct: 2,
+                explain: "西班牙人並沒有以高原的庫斯科為首，而是選擇在海岸線建立了利馬，並將其打造成南美殖民的核心首都。"
+            }
+        ];
+
+        let currentQuizIndex = 0;
+        let score = 0;
+
+        function loadQuiz() {
+            const currentQuiz = quizData[currentQuizIndex];
+            document.getElementById('quiz-question').textContent = `${currentQuizIndex + 1}. ${currentQuiz.q}`;
+            
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = ''; // 清空選項
+            
+            currentQuiz.options.forEach((opt, idx) => {
+                const button = document.createElement('button');
+                button.className = "w-full text-left p-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-500/50 hover:bg-slate-850 transition-all text-sm font-medium";
+                button.textContent = opt;
+                button.onclick = () => selectOption(idx);
+                optionsContainer.appendChild(button);
+            });
+
+            // 隱藏反饋
+            document.getElementById('quiz-feedback').className = "mt-4 p-3 rounded-xl hidden text-center font-semibold text-sm";
+        }
+
+        function selectOption(selectedIndex) {
+            const currentQuiz = quizData[currentQuizIndex];
+            const feedback = document.getElementById('quiz-feedback');
+            
+            // 停用所有選項按鈕，防止重複點擊
+            const buttons = document.getElementById('quiz-options').getElementsByTagName('button');
+            for (let btn of buttons) {
+                btn.disabled = true;
+            }
+
+            if (selectedIndex === currentQuiz.correct) {
+                score++;
+                document.getElementById('quiz-score').textContent = score;
+                feedback.className = "mt-4 p-3 rounded-xl block text-center font-semibold text-sm bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                feedback.textContent = `🎉 答對了！ ${currentQuiz.explain}`;
+            } else {
+                feedback.className = "mt-4 p-3 rounded-xl block text-center font-semibold text-sm bg-red-500/10 text-red-400 border border-red-500/20";
+                feedback.textContent = `❌ 答錯囉！正確解答為：${currentQuiz.options[currentQuiz.correct]}。 ${currentQuiz.explain}`;
+            }
+
+            // 兩秒後前進到下一題
+            setTimeout(() => {
+                currentQuizIndex = (currentQuizIndex + 1) % quizData.length;
+                // 重設分數累計
+                if (currentQuizIndex === 0) {
+                    score = 0;
+                    document.getElementById('quiz-score').textContent = score;
+                }
+                loadQuiz();
+            }, 4500);
+        }
+
+        // 初始化
+        window.onload = function() {
+            // 預設點亮前西班牙時期
+            switchEra('pre-spanish');
+            // 載入趣味問答第一題
+            loadQuiz();
+        };
+    </script>
+</body>
+</html>
