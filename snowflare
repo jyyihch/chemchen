@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冰晶生長模擬器 - DLA 隨機漫步模型</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'Noto Sans TC', 'sans-serif'],
+                    },
+                    colors: {
+                        ice: {
+                            900: '#060c1a',
+                            800: '#0b162c',
+                            700: '#112244',
+                            600: '#1b3461',
+                            500: '#2a5298',
+                            400: '#3a7bd5',
+                            300: '#64b5f6',
+                            200: '#a5d6a7',
+                            100: '#e0f7fa',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050a15;
+            color: #e2e8f0;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .glass-panel {
+            background: rgba(11, 22, 44, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(100, 181, 246, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-button {
+            background: rgba(42, 82, 152, 0.3);
+            border: 1px solid rgba(100, 181, 246, 0.3);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-button:hover {
+            background: rgba(58, 123, 213, 0.5);
+            border-color: rgba(224, 247, 250, 0.6);
+            box-shadow: 0 0 15px rgba(100, 181, 246, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .glass-button:active {
+            transform: translateY(1px);
+        }
+
+        /* Custom scrollbar for control sidebar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(6, 12, 26, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 181, 246, 0.3);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 181, 246, 0.6);
+        }
+
+        /* Pulsing status indicator */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.15); }
+        }
+        .animate-pulse-glow {
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+
+        canvas {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans antialiased text-slate-100 selection:bg-cyan-500 selection:text-white">
+
+    <header class="w-full glass-panel border-b border-cyan-500/20 px-4 lg:px-8 py-3 flex items-center justify-between z-30 sticky top-0">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-400 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                <i class="fa-solid fa-snowflake text-xl text-white animate-spin" style="animation-duration: 20s;"></i>
+            </div>
+            <div>
+                <h1 class="text-lg lg:text-xl font-bold tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-cyan-200 via-blue-100 to-indigo-200">
+                    冰晶生長模擬器 <span class="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-normal border border-cyan-500/30">DLA 模型</span>
+                </h1>
+                <p class="text-xs text-slate-400 hidden sm:block">Diffusion-Limited Aggregation 擴散限制聚集法</p>
+            </div>
+        </div>
+
+        <!-- Quick Top Action Controls -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+            <button id="btnReset" class="glass-button px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-cyan-200 flex items-center space-x-2 hover:text-white">
+                <i class="fa-solid fa-arrows-rotate text-cyan-400"></i>
+                <span>重設冰晶</span>
+            </button>
+            <button id="btnTogglePlay" class="glass-button px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-cyan-600/40 hover:bg-cyan-500/50 flex items-center space-x-2">
+                <i id="playIcon" class="fa-solid fa-pause text-cyan-300"></i>
+                <span id="playText">暫停</span>
+            </button>
+            <button id="btnStep" class="glass-button px-3 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hidden sm:flex items-center space-x-1" title="單步執行">
+                <i class="fa-solid fa-forward-step"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row relative overflow-hidden">
+
+        <!-- Canvas Container -->
+        <div class="flex-1 relative flex items-center justify-center p-2 sm:p-4 min-h-[420px] lg:min-h-0 bg-slate-950/60">
+            <!-- Background Radial Lighting -->
+            <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950/80 to-slate-950 pointer-events-none"></div>
+
+            <!-- Canvas Element -->
+            <canvas id="dlaCanvas" class="relative z-10 rounded-2xl shadow-2xl cursor-crosshair border border-cyan-500/20 bg-slate-950/90 max-w-full max-h-full object-contain"></canvas>
+
+            <!-- Floating Overlay Stats -->
+            <div class="absolute top-6 left-6 z-20 pointer-events-none flex flex-col gap-2">
+                <div class="glass-panel px-3.5 py-2 rounded-xl flex items-center space-x-3 text-xs">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse-glow" id="statusIndicator"></span>
+                    <span class="font-medium text-slate-200" id="statusText">正在凝結晶體...</span>
+                </div>
+            </div>
+
+            <!-- Floating Quick Info Cards -->
+            <div class="absolute bottom-6 left-6 right-6 lg:right-auto z-20 pointer-events-none grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-xs">
+                <div class="glass-panel px-3 py-2 rounded-xl border-l-2 border-l-cyan-400">
+                    <div class="text-slate-400">冰晶節點數</div>
+                    <div class="text-base sm:text-lg font-bold text-cyan-200" id="statNodes">1</div>
+                </div>
+                <div class="glass-panel px-3 py-2 rounded-xl border-l-2 border-l-blue-400">
+                    <div class="text-slate-400">最大結晶半徑</div>
+                    <div class="text-base sm:text-lg font-bold text-blue-200" id="statRadius">0 px</div>
+                </div>
+                <div class="glass-panel px-3 py-2 rounded-xl border-l-2 border-l-indigo-400">
+                    <div class="text-slate-400">漫步粒子數</div>
+                    <div class="text-base sm:text-lg font-bold text-indigo-200" id="statWalkers">0</div>
+                </div>
+                <div class="glass-panel px-3 py-2 rounded-xl border-l-2 border-l-purple-400">
+                    <div class="text-slate-400">模擬幀率 (FPS)</div>
+                    <div class="text-base sm:text-lg font-bold text-purple-200" id="statFPS">60</div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="w-full lg:w-80 xl:w-96 glass-panel border-t lg:border-t-0 lg:border-l border-cyan-500/20 p-4 sm:p-6 overflow-y-auto max-h-[50vh] lg:max-h-none flex flex-col gap-6 z-20">
+            
+            <!-- Preset Configurations -->
+            <section>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> 冰晶形態預設
+                </h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button class="preset-btn glass-button p-2.5 rounded-xl text-left text-xs" data-preset="snowflake">
+                        <div class="font-semibold text-cyan-100"><i class="fa-regular fa-snowflake mr-1"></i> 六角雪花</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">具備 6 對稱軸的精緻結晶</div>
+                    </button>
+                    <button class="preset-btn glass-button p-2.5 rounded-xl text-left text-xs" data-preset="classic">
+                        <div class="font-semibold text-cyan-100"><i class="fa-solid fa-tree mr-1"></i> 自由分枝 (DLA)</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">經典自然的無定形樹枝狀</div>
+                    </button>
+                    <button class="preset-btn glass-button p-2.5 rounded-xl text-left text-xs" data-preset="dense">
+                        <div class="font-semibold text-cyan-100"><i class="fa-solid fa-compact-disc mr-1"></i> 緻密冰晶</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">高黏著率的強固結晶塊</div>
+                    </button>
+                    <button class="preset-btn glass-button p-2.5 rounded-xl text-left text-xs" data-preset="multiseed">
+                        <div class="font-semibold text-cyan-100"><i class="fa-solid fa-dharmachakra mr-1"></i> 多核結霜</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">多個核心同時向外擴散</div>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Physical Simulation Settings -->
+            <section class="space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders"></i> 物理與生成參數
+                </h3>
+
+                <!-- Symmetry Mode Selection -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1.5">對稱結構模式</label>
+                    <select id="selectSymmetry" class="w-full bg-slate-900/80 border border-cyan-500/30 rounded-xl p-2 text-xs text-cyan-100 focus:outline-none focus:border-cyan-400">
+                        <option value="6">六對稱軸 (Hexagonal Snowflake)</option>
+                        <option value="1">自由分枝 (Classic DLA - 1-Fold)</option>
+                        <option value="4">四對稱軸 (Cross Symmetry)</option>
+                        <option value="8">八對稱軸 (Starburst)</option>
+                    </select>
+                </div>
+
+                <!-- Simulation Speed -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300">生長速度 (每幀步數)</span>
+                        <span class="text-cyan-300 font-mono" id="valSpeed">200</span>
+                    </div>
+                    <input type="range" id="sliderSpeed" min="10" max="1000" step="10" value="200" 
+                           class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+                </div>
+
+                <!-- Active Walkers Count -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300">同時漫步粒子數</span>
+                        <span class="text-cyan-300 font-mono" id="valWalkers">150</span>
+                    </div>
+                    <input type="range" id="sliderWalkers" min="10" max="500" step="10" value="150" 
+                           class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+                </div>
+
+                <!-- Stickiness / Attachment Probability -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300">碰撞黏著機率 (Stickiness)</span>
+                        <span class="text-cyan-300 font-mono" id="valStickiness">80%</span>
+                    </div>
+                    <input type="range" id="sliderStickiness" min="0.05" max="1.0" step="0.05" value="0.8" 
+                           class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+                    <p class="text-[10px] text-slate-400 mt-1">黏著機率越低，粒子越容易深入內層，形成更精細纖細的枝芽。</p>
+                </div>
+
+                <!-- Step Size -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300">漫步步長 (Step Radius)</span>
+                        <span class="text-cyan-300 font-mono" id="valStepSize">2 px</span>
+                    </div>
+                    <input type="range" id="sliderStepSize" min="1" max="4" step="1" value="2" 
+                           class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+                </div>
+            </section>
+
+            <!-- Visual Style Settings -->
+            <section class="space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+                    <i class="fa-solid fa-palette"></i> 視覺色彩與渲染
+                </h3>
+
+                <!-- Color Palette Selection -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1.5">色彩調色盤</label>
+                    <select id="selectPalette" class="w-full bg-slate-900/80 border border-cyan-500/30 rounded-xl p-2 text-xs text-cyan-100 focus:outline-none focus:border-cyan-400">
+                        <option value="arctic">極地寒冰 (Arctic Frost)</option>
+                        <option value="aurora">極光霓虹 (Aurora Borealis)</option>
+                        <option value="sapphire">深海藍寶 (Sapphire Blue)</option>
+                        <option value="golden">晨曦金霜 (Golden Sunfrost)</option>
+                        <option value="emerald">翡翠冰晶 (Emerald Crystal)</option>
+                    </select>
+                </div>
+
+                <!-- Color Map Mode -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1.5">色彩著色依據</label>
+                    <select id="selectColorMode" class="w-full bg-slate-900/80 border border-cyan-500/30 rounded-xl p-2 text-xs text-cyan-100 focus:outline-none focus:border-cyan-400">
+                        <option value="time">生長時間軸 (Age Sequence)</option>
+                        <option value="distance">中心距離 (Radial Distance)</option>
+                        <option value="solid">純淨冷白 (Solid Ice)</option>
+                    </select>
+                </div>
+
+                <!-- Glow Toggle -->
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-300">冰晶霓虹發光效果</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="chkGlow" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+                    </label>
+                </div>
+
+                <!-- Show Walkers Toggle -->
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-300">顯示游離漫步粒子</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="chkShowWalkers" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+                    </label>
+                </div>
+            </section>
+
+            <!-- Principle Explanation Box -->
+            <section class="glass-panel p-3.5 rounded-xl border border-cyan-500/20 text-xs text-slate-300 space-y-1.5 mt-auto">
+                <div class="font-semibold text-cyan-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-info"></i> DLA 模擬原理解析
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                    <strong>擴散限制聚集 (DLA)</strong> 模擬粒子在容器中進行無規則的布朗運動（隨機漫步）。當粒子接觸到中央既有的晶核時，即依機率「凝結固定」，逐漸堆疊出複雜奇妙的分形樹枝狀冰晶構造。
+                </p>
+                <div class="text-[10px] text-cyan-400/80 pt-1 border-t border-slate-800">
+                    💡 提示：按住畫布點擊可手動新增額外結晶核！
+                </div>
+            </section>
+        </aside>
+    </main>
+
+    <script>
+        /**
+         * DLA (Diffusion-Limited Aggregation) Ice Crystal Simulation Core Engine
+         */
+        class DLASimulation {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
+
+                // Grid Resolution & Canvas setup
+                this.gridWidth = 600;
+                this.gridHeight = 600;
+                
+                // State Arrays
+                this.grid = null; // Uint32Array storing frozen node metadata or 0
+                this.frozenNodes = []; // Store node history for rapid glow rendering
+                this.walkers = []; // Array of active random walking particles [{x, y}]
+
+                // Physics Simulation Parameters
+                this.symmetry = 6; // Symmetry axes (1 = freeform, 6 = snowflake)
+                this.speedSteps = 200; // Calculation iterations per frame
+                this.maxWalkers = 150; // Active parallel random walkers
+                this.stickiness = 0.8; // Attachment probability [0.0 - 1.0]
+                this.stepSize = 2; // Step jump distance in pixel grid
+                
+                // Visual Parameters
+                this.paletteName = 'arctic';
+                this.colorMode = 'time'; // 'time', 'distance', 'solid'
+                this.enableGlow = true;
+                this.showWalkers = true;
+
+                // Simulation Spatial Bounds
+                this.maxRadius = 0;
+                this.spawnMargin = 12;
+                this.killMargin = 40;
+
+                // Control status
+                this.isRunning = true;
+                this.totalSteps = 0;
+
+                // Color Palettes Definition
+                this.palettes = {
+                    arctic: [
+                        { r: 224, g: 247, b: 250 }, // White Cyan
+                        { r: 100, g: 181, b: 246 }, // Bright Ice Blue
+                        { r: 42,  g: 82,  b: 152 }, // Mid Blue
+                        { r: 17,  g: 34,  b: 68  }  // Deep Arctic
+                    ],
+                    aurora: [
+                        { r: 255, g: 255, b: 255 }, // White
+                        { r: 128, g: 255, b: 212 }, // Mint Neon
+                        { r: 0,   g: 210, b: 255 }, // Cyan
+                        { r: 157, g: 78,  b: 221 }  // Electric Purple
+                    ],
+                    sapphire: [
+                        { r: 240, g: 248, b: 255 }, // Ice White
+                        { r: 56,  g: 189, b: 248 }, // Light Blue
+                        { r: 30,  g: 58,  b: 138 }, // Sapphire
+                        { r: 15,  g: 23,  b: 42  }  // Midnight
+                    ],
+                    golden: [
+                        { r: 255, g: 253, b: 231 }, // Light Gold
+                        { r: 255, g: 213, b: 79  }, // Amber
+                        { r: 255, g: 112, b: 67  }, // Frost Coral
+                        { r: 74,  g: 20,  b: 140 }  // Twilight Purple
+                    ],
+                    emerald: [
+                        { r: 240, g: 253, b: 244 }, // Mint Ice
+                        { r: 52,  g: 211, b: 153 }, // Emerald Glow
+                        { r: 16,  g: 185, b: 129 }, // Teal
+                        { r: 6,   g: 78,  b: 59  }  // Deep Forest
+                    ]
+                };
+
+                this.initCanvasSize();
+                this.resetSimulation();
+            }
+
+            initCanvasSize() {
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                const size = Math.min(rect.width - 20, rect.height - 20, 700);
+                const finalSize = Math.max(size, 320);
+
+                this.canvas.width = finalSize;
+                this.canvas.height = finalSize;
+                
+                // Adjust grid resolution to match canvas aspect
+                this.gridWidth = Math.floor(finalSize);
+                this.gridHeight = Math.floor(finalSize);
+                this.centerX = Math.floor(this.gridWidth / 2);
+                this.centerY = Math.floor(this.gridHeight / 2);
+            }
+
+            resetSimulation(customSeed = null) {
+                // Initialize clean empty grid matrix
+                this.grid = new Uint8Array(this.gridWidth * this.gridHeight);
+                this.frozenNodes = [];
+                this.walkers = [];
+                this.maxRadius = 1;
+                this.totalSteps = 0;
+
+                // Clear Canvas
+                this.ctx.fillStyle = '#050a15';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                if (customSeed) {
+                    // Seed at custom position
+                    this.freezeNode(customSeed.x, customSeed.y, 0);
+                } else if (this.symmetry === 'multiseed') {
+                    // Plant 5 seeds for multi-seed crystallization
+                    const r = Math.floor(this.gridWidth * 0.15);
+                    this.freezeNode(this.centerX, this.centerY, 0);
+                    this.freezeNode(this.centerX + r, this.centerY, 0);
+                    this.freezeNode(this.centerX - r, this.centerY, 0);
+                    this.freezeNode(this.centerX, this.centerY + r, 0);
+                    this.freezeNode(this.centerX, this.centerY - r, 0);
+                } else {
+                    // Plant central seed node
+                    this.freezeNode(this.centerX, this.centerY, 0);
+                }
+
+                // Initial Walker Spawning
+                this.replenishWalkers();
+            }
+
+            getGrid(x, y) {
+                if (x < 0 || x >= this.gridWidth || y < 0 || y >= this.gridHeight) return 0;
+                return this.grid[y * this.gridWidth + x];
+            }
+
+            setGrid(x, y, val = 1) {
+                if (x < 0 || x >= this.gridWidth || y < 0 || y >= this.gridHeight) return;
+                this.grid[y * this.gridWidth + x] = val;
+            }
+
+            freezeNode(x, y, timeStep) {
+                if (this.getGrid(x, y) === 1) return;
+
+                // Freeze primary position
+                this.setGrid(x, y, 1);
+                
+                const distFromCenter = Math.hypot(x - this.centerX, y - this.centerY);
+                const nodeInfo = { x, y, step: timeStep, dist: distFromCenter };
+                this.frozenNodes.push(nodeInfo);
+
+                if (distFromCenter > this.maxRadius) {
+                    this.maxRadius = distFromCenter;
+                }
+
+                // If symmetry mode enabled (e.g. 6-fold Hexagonal symmetry for real snowflakes)
+                const numSymmetry = parseInt(this.symmetry);
+                if (numSymmetry > 1 && !isNaN(numSymmetry)) {
+                    this.applySymmetryFreeze(x, y, numSymmetry, timeStep);
+                }
+            }
+
+            applySymmetryFreeze(x, y, folds, timeStep) {
+                const dx = x - this.centerX;
+                const dy = y - this.centerY;
+                const radius = Math.hypot(dx, dy);
+                const baseAngle = Math.atan2(dy, dx);
+                const angleStep = (Math.PI * 2) / folds;
+
+                for (let i = 1; i < folds; i++) {
+                    const angle = baseAngle + i * angleStep;
+                    const symX = Math.round(this.centerX + radius * Math.cos(angle));
+                    const symY = Math.round(this.centerY + radius * Math.sin(angle));
+
+                    if (symX >= 0 && symX < this.gridWidth && symY >= 0 && symY < this.gridHeight) {
+                        if (this.getGrid(symX, symY) === 0) {
+                            this.setGrid(symX, symY, 1);
+                            this.frozenNodes.push({ x: symX, y: symY, step: timeStep, dist: radius });
+                        }
+                    }
+                }
+            }
+
+            spawnWalker() {
+                // Spawn walkers on a circle slightly larger than current crystal radius
+                const spawnRadius = Math.min(this.maxRadius + this.spawnMargin, Math.min(this.gridWidth, this.gridHeight) / 2 - 5);
+                const angle = Math.random() * Math.PI * 2;
+                
+                // Pick random seed center as target if multiple seeds
+                const x = Math.round(this.centerX + spawnRadius * Math.cos(angle));
+                const y = Math.round(this.centerY + spawnRadius * Math.sin(angle));
+
+                return { x, y };
+            }
+
+            replenishWalkers() {
+                while (this.walkers.length < this.maxWalkers) {
+                    this.walkers.push(this.spawnWalker());
+                }
+            }
+
+            hasNeighbor(x, y) {
+                // Check 8-neighbor adjacency for frozen structure
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        if (dx === 0 && dy === 0) continue;
+                        if (this.getGrid(x + dx, y + dy) === 1) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            updateSimulation() {
+                if (!this.isRunning) return;
+
+                const killRadius = this.maxRadius + this.killMargin;
+                const maxAllowedRadius = Math.min(this.gridWidth, this.gridHeight) / 2 - 10;
+
+                // Stop if crystal fills canvas
+                if (this.maxRadius >= maxAllowedRadius) {
+                    this.isRunning = false;
+                    return;
+                }
+
+                // Execute multiple simulation random-walk steps per frame for smooth speed
+                for (let step = 0; step < this.speedSteps; step++) {
+                    this.totalSteps++;
+
+                    for (let i = this.walkers.length - 1; i >= 0; i--) {
+                        let w = this.walkers[i];
+
+                        // Random Walk Step (2D Brownian Motion)
+                        const dir = Math.floor(Math.random() * 4);
+                        if (dir === 0) w.x += this.stepSize;
+                        else if (dir === 1) w.x -= this.stepSize;
+                        else if (dir === 2) w.y += this.stepSize;
+                        else w.y -= this.stepSize;
+
+                        // Check boundary kill condition
+                        const distFromCenter = Math.hypot(w.x - this.centerX, w.y - this.centerY);
+                        if (distFromCenter > killRadius || w.x < 2 || w.x >= this.gridWidth - 2 || w.y < 2 || w.y >= this.gridHeight - 2) {
+                            // Respawn out-of-bound walker back near growth edge
+                            this.walkers[i] = this.spawnWalker();
+                            continue;
+                        }
+
+                        // Check Attachment to Frozen Crystal Structure
+                        if (this.hasNeighbor(w.x, w.y)) {
+                            // Stickiness probability test
+                            if (Math.random() <= this.stickiness) {
+                                this.freezeNode(w.x, w.y, this.frozenNodes.length);
+                                this.walkers[i] = this.spawnWalker();
+                            }
+                        }
+                    }
+                }
+
+                this.replenishWalkers();
+            }
+
+            getNodeColor(node) {
+                const palette = this.palettes[this.paletteName] || this.palettes.arctic;
+                let factor = 0;
+
+                if (this.colorMode === 'time') {
+                    factor = Math.min(1, node.step / Math.max(1, this.frozenNodes.length));
+                } else if (this.colorMode === 'distance') {
+                    factor = Math.min(1, node.dist / Math.max(1, this.maxRadius));
+                } else { // 'solid'
+                    return 'rgb(224, 247, 250)';
+                }
+
+                // Interpolate colors across palette gradient stops
+                const idx = factor * (palette.length - 1);
+                const i1 = Math.floor(idx);
+                const i2 = Math.min(palette.length - 1, i1 + 1);
+                const t = idx - i1;
+
+                const c1 = palette[i1];
+                const c2 = palette[i2];
+
+                const r = Math.round(c1.r + (c2.r - c1.r) * t);
+                const g = Math.round(c1.g + (c2.g - c1.g) * t);
+                const b = Math.round(c1.b + (c2.b - c1.b) * t);
+
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+
+            draw() {
+                // Dark background reset
+                this.ctx.fillStyle = '#050a15';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Enable Neon Bloom Glow Effect if selected
+                if (this.enableGlow) {
+                    this.ctx.shadowBlur = 10;
+                    this.ctx.shadowColor = 'rgba(100, 181, 246, 0.6)';
+                } else {
+                    this.ctx.shadowBlur = 0;
+                }
+
+                // Render Frozen Crystal Nodes
+                const nodeSize = Math.max(1, this.stepSize);
+                for (let i = 0; i < this.frozenNodes.length; i++) {
+                    const node = this.frozenNodes[i];
+                    this.ctx.fillStyle = this.getNodeColor(node);
+                    this.ctx.fillRect(node.x, node.y, nodeSize, nodeSize);
+                }
+
+                // Turn off shadow blur for walker particles & overlay
+                this.ctx.shadowBlur = 0;
+
+                // Render Active Random Walkers
+                if (this.showWalkers) {
+                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    for (let i = 0; i < this.walkers.length; i++) {
+                        const w = this.walkers[i];
+                        this.ctx.fillRect(w.x, w.y, 1.5, 1.5);
+                    }
+                }
+
+                // Render Active Growth Boundary Guide Ring
+                const spawnR = this.maxRadius + this.spawnMargin;
+                this.ctx.beginPath();
+                this.ctx.arc(this.centerX, this.centerY, spawnR, 0, Math.PI * 2);
+                this.ctx.strokeStyle = 'rgba(100, 181, 246, 0.08)';
+                this.ctx.lineWidth = 1;
+                this.ctx.stroke();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('dlaCanvas');
+            const sim = new DLASimulation(canvas);
+
+            // UI Elements
+            const btnReset = document.getElementById('btnReset');
+            const btnTogglePlay = document.getElementById('btnTogglePlay');
+            const btnStep = document.getElementById('btnStep');
+            const playIcon = document.getElementById('playIcon');
+            const playText = document.getElementById('playText');
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+
+            // Stats Elements
+            const statNodes = document.getElementById('statNodes');
+            const statRadius = document.getElementById('statRadius');
+            const statWalkers = document.getElementById('statWalkers');
+            const statFPS = document.getElementById('statFPS');
+
+            // Control Inputs
+            const selectSymmetry = document.getElementById('selectSymmetry');
+            const sliderSpeed = document.getElementById('sliderSpeed');
+            const valSpeed = document.getElementById('valSpeed');
+            const sliderWalkers = document.getElementById('sliderWalkers');
+            const valWalkers = document.getElementById('valWalkers');
+            const sliderStickiness = document.getElementById('sliderStickiness');
+            const valStickiness = document.getElementById('valStickiness');
+            const sliderStepSize = document.getElementById('sliderStepSize');
+            const valStepSize = document.getElementById('valStepSize');
+            const selectPalette = document.getElementById('selectPalette');
+            const selectColorMode = document.getElementById('selectColorMode');
+            const chkGlow = document.getElementById('chkGlow');
+            const chkShowWalkers = document.getElementById('chkShowWalkers');
+
+            // FPS Measurement
+            let lastTime = performance.now();
+            let frameCount = 0;
+            let currentFPS = 60;
+
+            function updateUIStats() {
+                statNodes.textContent = sim.frozenNodes.length.toLocaleString();
+                statRadius.textContent = `${Math.round(sim.maxRadius)} px`;
+                statWalkers.textContent = sim.walkers.length;
+                statFPS.textContent = currentFPS;
+
+                if (sim.isRunning) {
+                    statusIndicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse-glow";
+                    statusText.textContent = "正在凝結晶體...";
+                } else {
+                    statusIndicator.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
+                    statusText.textContent = sim.maxRadius >= (sim.gridWidth / 2 - 12) ? "生長已達邊界 (完成)" : "模擬已暫停";
+                }
+            }
+
+            // Main Animation Loop
+            function loop(now) {
+                frameCount++;
+                if (now - lastTime >= 1000) {
+                    currentFPS = frameCount;
+                    frameCount = 0;
+                    lastTime = now;
+                }
+
+                sim.updateSimulation();
+                sim.draw();
+                updateUIStats();
+
+                requestAnimationFrame(loop);
+            }
+
+            // Bind Event Controls
+            btnReset.addEventListener('click', () => {
+                sim.resetSimulation();
+                sim.isRunning = true;
+                playIcon.className = "fa-solid fa-pause text-cyan-300";
+                playText.textContent = "暫停";
+            });
+
+            btnTogglePlay.addEventListener('click', () => {
+                sim.isRunning = !sim.isRunning;
+                if (sim.isRunning) {
+                    playIcon.className = "fa-solid fa-pause text-cyan-300";
+                    playText.textContent = "暫停";
+                } else {
+                    playIcon.className = "fa-solid fa-play text-cyan-300";
+                    playText.textContent = "繼續";
+                }
+            });
+
+            btnStep.addEventListener('click', () => {
+                sim.isRunning = false;
+                playIcon.className = "fa-solid fa-play text-cyan-300";
+                playText.textContent = "繼續";
+                sim.updateSimulation();
+                sim.draw();
+                updateUIStats();
+            });
+
+            // Handle Parameter Slider Inputs
+            sliderSpeed.addEventListener('input', (e) => {
+                sim.speedSteps = parseInt(e.target.value);
+                valSpeed.textContent = e.target.value;
+            });
+
+            sliderWalkers.addEventListener('input', (e) => {
+                sim.maxWalkers = parseInt(e.target.value);
+                valWalkers.textContent = e.target.value;
+            });
+
+            sliderStickiness.addEventListener('input', (e) => {
+                sim.stickiness = parseFloat(e.target.value);
+                valStickiness.textContent = `${Math.round(sim.stickiness * 100)}%`;
+            });
+
+            sliderStepSize.addEventListener('input', (e) => {
+                sim.stepSize = parseInt(e.target.value);
+                valStepSize.textContent = `${e.target.value} px`;
+            });
+
+            selectSymmetry.addEventListener('change', (e) => {
+                sim.symmetry = e.target.value;
+                sim.resetSimulation();
+            });
+
+            selectPalette.addEventListener('change', (e) => {
+                sim.paletteName = e.target.value;
+            });
+
+            selectColorMode.addEventListener('change', (e) => {
+                sim.colorMode = e.target.value;
+            });
+
+            chkGlow.addEventListener('change', (e) => {
+                sim.enableGlow = e.target.checked;
+            });
+
+            chkShowWalkers.addEventListener('change', (e) => {
+                sim.showWalkers = e.target.checked;
+            });
+
+            // Preset Buttons Click Listeners
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const preset = btn.getAttribute('data-preset');
+
+                    if (preset === 'snowflake') {
+                        selectSymmetry.value = "6";
+                        sim.symmetry = 6;
+                        sliderStickiness.value = 0.8;
+                        sim.stickiness = 0.8;
+                        selectPalette.value = "arctic";
+                        sim.paletteName = "arctic";
+                    } else if (preset === 'classic') {
+                        selectSymmetry.value = "1";
+                        sim.symmetry = 1;
+                        sliderStickiness.value = 0.6;
+                        sim.stickiness = 0.6;
+                        selectPalette.value = "sapphire";
+                        sim.paletteName = "sapphire";
+                    } else if (preset === 'dense') {
+                        selectSymmetry.value = "6";
+                        sim.symmetry = 6;
+                        sliderStickiness.value = 1.0;
+                        sim.stickiness = 1.0;
+                        selectPalette.value = "emerald";
+                        sim.paletteName = "emerald";
+                    } else if (preset === 'multiseed') {
+                        selectSymmetry.value = "multiseed";
+                        sim.symmetry = "multiseed";
+                        sliderStickiness.value = 0.7;
+                        sim.stickiness = 0.7;
+                        selectPalette.value = "aurora";
+                        sim.paletteName = "aurora";
+                    }
+
+                    valStickiness.textContent = `${Math.round(sim.stickiness * 100)}%`;
+                    sim.resetSimulation();
+                });
+            });
+
+            // Interactive Click to Add Seed on Canvas
+            canvas.addEventListener('pointerdown', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = sim.gridWidth / rect.width;
+                const scaleY = sim.gridHeight / rect.height;
+
+                const clickX = Math.round((e.clientX - rect.left) * scaleX);
+                const clickY = Math.round((e.clientY - rect.top) * scaleY);
+
+                if (clickX >= 0 && clickX < sim.gridWidth && clickY >= 0 && clickY < sim.gridHeight) {
+                    sim.freezeNode(clickX, clickY, sim.frozenNodes.length);
+                }
+            });
+
+            // Window Resize handling
+            window.addEventListener('resize', () => {
+                sim.initCanvasSize();
+            });
+
+            // Start Animation Loop
+            requestAnimationFrame(loop);
+        });
+    </script>
+</body>
+</html>
