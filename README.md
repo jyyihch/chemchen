@@ -7,3 +7,6 @@ https://jyyihch.github.io/chemchen/index.html
 
 ## snowflare-2026年8月21日-練習用gemini產生的雪花模擬程式
 https://jyyihch.github.io/chemchen/snowflare.html
+
+## 2027-20260910-使用gemini產生的會考倒數程式
+https://jyyihch.github.io/chemchen/2027.html
