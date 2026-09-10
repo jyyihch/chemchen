@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2027 國中教育會考倒數計時 | CAP 2027 Countdown</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Noto Sans TC, JetBrains Mono, Cinzel -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=JetBrains+Mono:wght@500;700;800&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      overflow-x: hidden;
+    }
+
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .font-serif-tc {
+      font-family: 'Noto Serif TC', serif;
+    }
+
+    /* 漸層光暈與毛玻璃卡片 */
+    .glass-card {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .glass-pill {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* 數字發光文字效果 */
+    .glow-gold {
+      text-shadow: 0 0 25px rgba(245, 158, 11, 0.5), 0 0 50px rgba(245, 158, 11, 0.2);
+    }
+    
+    .glow-cyan {
+      text-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+    }
+
+    /* 數字翻轉與呼吸動效 */
+    @keyframes pulse-subtle {
+      0%, 100% { transform: scale(1); opacity: 0.95; }
+      50% { transform: scale(1.02); opacity: 1; }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 4s ease-in-out infinite;
+    }
+
+    /* 隱藏滾動條 */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.5);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+
+<body class="h-full bg-slate-950 text-slate-100 flex flex-col justify-between relative selection:bg-amber-500 selection:text-slate-900">
+
+  <!-- 動態背景：晝夜流轉、時光粒子、流星與時間漣漪 -->
+  <canvas id="timeStreamCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-0"></canvas>
+
+  <!-- 頂部頂部導覽列 -->
+  <header class="relative z-10 w-full px-4 sm:px-8 py-5 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 ring-1 ring-white/20">
+        <i class="fa-solid fa-graduation-cap text-white text-lg"></i>
+      </div>
+      <div>
+        <h1 class="text-lg sm:text-xl font-bold tracking-wider text-slate-100 font-serif-tc">
+          2027 國中教育會考
+        </h1>
+        <p class="text-xs text-slate-400">116年國中教育會考・倒數計時平台</p>
+      </div>
+    </div>
+
+    <!-- 右側功能按鈕區 -->
+    <div class="flex items-center space-x-2 sm:space-x-3">
+      <!-- 沉浸全螢幕切換 -->
+      <button id="btnFullscreen" title="全螢幕模式" class="glass-pill hover:bg-white/20 text-slate-200 px-3.5 py-2 rounded-xl text-sm transition-all duration-300 flex items-center gap-2">
+        <i class="fa-solid fa-expand"></i>
+        <span class="hidden sm:inline">全螢幕</span>
+      </button>
+      <!-- 自訂座右銘彈窗 -->
+      <button id="btnGoalModal" title="自訂座右銘" class="glass-pill hover:bg-amber-500/20 hover:text-amber-300 text-slate-200 px-3.5 py-2 rounded-xl text-sm transition-all duration-300 flex items-center gap-2">
+        <i class="fa-solid fa-pen-nib text-amber-400"></i>
+        <span id="targetGoalLabel" class="font-medium">自訂座右銘</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 主倒數計時核心展示區 -->
+  <main class="relative z-10 container mx-auto px-4 py-4 sm:py-8 flex flex-col items-center justify-center flex-grow">
+    
+    <!-- 考試基本資訊徽章 -->
+    <div class="mb-6 inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full glass-pill border border-amber-500/30 text-xs sm:text-sm text-amber-300 shadow-lg shadow-amber-950/40">
+      <span class="relative flex h-2.5 w-2.5">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+      </span>
+      <span>考試日期：2027 年 5 月 15 日（六）上午 08:20 準時登場</span>
+    </div>
+
+    <!-- 倒數主核心卡片 -->
+    <div class="w-full max-w-4xl glass-card rounded-3xl p-6 sm:p-10 text-center relative overflow-hidden ring-1 ring-white/10">
+      
+      <!-- 背景幾何裝飾光芒 -->
+      <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-gradient-to-b from-indigo-500/20 via-amber-500/10 to-transparent rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- 標題提示句：符合要求「距2027會考還有__天__時__分__秒」 -->
+      <h2 class="text-xl sm:text-2xl md:text-3xl font-bold tracking-wider text-slate-300 mb-8 font-serif-tc">
+        距 <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-200 to-indigo-200 font-extrabold">2027 會考</span> 還有
+      </h2>
+
+      <!-- 四聯動態數字方塊 (天、時、分、秒) -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-6 mb-8">
+        
+        <!-- 天數 -->
+        <div class="bg-slate-900/80 rounded-2xl p-4 sm:p-6 border border-slate-700/60 shadow-xl flex flex-col items-center justify-center relative group hover:border-amber-500/50 transition-all duration-300">
+          <div class="text-4xl sm:text-6xl lg:text-7xl font-extrabold font-mono-num text-amber-400 glow-gold" id="countDays">
+            000
+          </div>
+          <div class="mt-2 text-xs sm:text-sm font-semibold tracking-widest text-slate-400 uppercase">
+            天 (Days)
+          </div>
+          <div class="absolute bottom-1 w-8 h-1 bg-amber-500/40 rounded-full group-hover:w-16 transition-all duration-300"></div>
+        </div>
+
+        <!-- 小時 -->
+        <div class="bg-slate-900/80 rounded-2xl p-4 sm:p-6 border border-slate-700/60 shadow-xl flex flex-col items-center justify-center relative group hover:border-sky-500/50 transition-all duration-300">
+          <div class="text-4xl sm:text-6xl lg:text-7xl font-extrabold font-mono-num text-sky-400 glow-cyan" id="countHours">
+            00
+          </div>
+          <div class="mt-2 text-xs sm:text-sm font-semibold tracking-widest text-slate-400 uppercase">
+            時 (Hours)
+          </div>
+          <div class="absolute bottom-1 w-8 h-1 bg-sky-500/40 rounded-full group-hover:w-16 transition-all duration-300"></div>
+        </div>
+
+        <!-- 分鐘 -->
+        <div class="bg-slate-900/80 rounded-2xl p-4 sm:p-6 border border-slate-700/60 shadow-xl flex flex-col items-center justify-center relative group hover:border-indigo-500/50 transition-all duration-300">
+          <div class="text-4xl sm:text-6xl lg:text-7xl font-extrabold font-mono-num text-indigo-300" id="countMinutes">
+            00
+          </div>
+          <div class="mt-2 text-xs sm:text-sm font-semibold tracking-widest text-slate-400 uppercase">
+            分 (Mins)
+          </div>
+          <div class="absolute bottom-1 w-8 h-1 bg-indigo-500/40 rounded-full group-hover:w-16 transition-all duration-300"></div>
+        </div>
+
+        <!-- 秒數 -->
+        <div class="bg-slate-900/80 rounded-2xl p-4 sm:p-6 border border-slate-700/60 shadow-xl flex flex-col items-center justify-center relative group hover:border-rose-500/50 transition-all duration-300">
+          <div class="text-4xl sm:text-6xl lg:text-7xl font-extrabold font-mono-num text-rose-400" id="countSeconds">
+            00
+          </div>
+          <div class="mt-2 text-xs sm:text-sm font-semibold tracking-widest text-slate-400 uppercase flex items-center gap-1.5">
+            <span>秒 (Secs)</span>
+            <span class="text-[10px] text-slate-500 font-mono" id="countMilliseconds">.00</span>
+          </div>
+          <div class="absolute bottom-1 w-8 h-1 bg-rose-500/40 rounded-full group-hover:w-16 transition-all duration-300"></div>
+        </div>
+      </div>
+
+      <!-- 一體化整句呈現區（滿足直觀閱讀需求） -->
+      <div class="py-3 px-5 rounded-xl bg-white/5 border border-white/10 inline-block mb-6 max-w-full">
+        <p class="text-base sm:text-lg text-slate-200 tracking-wide break-words">
+          目前距2027會考還有 
+          <span class="text-amber-400 font-bold font-mono-num" id="inlineDays">0</span> 天 
+          <span class="text-sky-400 font-bold font-mono-num" id="inlineHours">0</span> 時 
+          <span class="text-indigo-300 font-bold font-mono-num" id="inlineMinutes">0</span> 分 
+          <span class="text-rose-400 font-bold font-mono-num" id="inlineSeconds">0</span> 秒
+        </p>
+      </div>
+
+      <!-- 總進度條進程（相對於國中三年的總歷程進度） -->
+      <div class="w-full max-w-2xl mx-auto space-y-2">
+        <div class="flex justify-between text-xs text-slate-400">
+          <span id="elapsedDaysText">已累積奮鬥歷程</span>
+          <span id="progressPercentage" class="font-mono text-amber-400 font-bold">0.00%</span>
+        </div>
+        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50 p-0.5">
+          <div id="prepProgressBar" class="h-full bg-gradient-to-r from-indigo-500 via-sky-400 to-amber-400 rounded-full transition-all duration-1000" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- 激勵心語小卡 -->
+      <div class="mt-8 pt-6 border-t border-slate-800/80 flex items-center justify-center gap-3 text-slate-300 text-sm sm:text-base italic font-serif-tc">
+        <i class="fa-solid fa-quote-left text-amber-500/50 text-xs"></i>
+        <span id="quoteDisplay" class="transition-opacity duration-500">時光不會辜負每一個步履不停的靈魂。</span>
+        <i class="fa-solid fa-quote-right text-amber-500/50 text-xs"></i>
+      </div>
+    </div>
+
+    <!-- 快速備戰時鐘與專注時鐘區 (已移除心中第一志願，改為雙欄自適應) -->
+    <div class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+      
+      <!-- 當前標準時間 -->
+      <div class="glass-card rounded-2xl p-4 flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 text-xl">
+          <i class="fa-regular fa-clock"></i>
+        </div>
+        <div>
+          <div class="text-xs text-slate-400">台灣標準時間 (UTC+8)</div>
+          <div id="currentClock" class="font-mono-num text-lg font-bold text-slate-200">00:00:00</div>
+        </div>
+      </div>
+
+      <!-- 學習時數計時/專注時鐘 -->
+      <div class="glass-card rounded-2xl p-4 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-xl">
+            <i class="fa-solid fa-hourglass-half"></i>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400">今日專注時間</div>
+            <div id="studyTimerDisplay" class="font-mono-num text-lg font-bold text-slate-200">00:00:00</div>
+          </div>
+        </div>
+        <button id="btnStudyToggle" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition shadow">
+          開始
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- 自訂座右銘設定彈窗 (Modal) -->
+  <div id="goalModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="glass-card rounded-3xl p-6 sm:p-8 w-full max-w-md border border-white/20 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+      <button id="btnCloseModal" class="absolute top-5 right-5 text-slate-400 hover:text-white transition">
+        <i class="fa-solid fa-xmark text-xl"></i>
+      </button>
+
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto mb-3 text-2xl">
+          <i class="fa-solid fa-pen-nib"></i>
+        </div>
+        <h3 class="text-xl font-bold text-slate-100 font-serif-tc">自訂專屬座右銘</h3>
+        <p class="text-xs text-slate-400 mt-1">寫下勉勵自己的話，每一天倒數都充滿力量！</p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">給自己的會考座右銘</label>
+          <input type="text" id="inputTargetMotto" placeholder="例：越努力，越幸運！5A++ 我來了！" maxlength="40"
+                 class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 placeholder-slate-500" />
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 mt-6">
+        <button id="btnCancelGoal" class="flex-1 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800 text-sm font-medium transition">
+          取消
+        </button>
+        <button id="btnSaveGoal" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-sm shadow-lg shadow-amber-500/25 transition">
+          儲存座右銘
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 頁腳 -->
+  <footer class="relative z-10 w-full px-4 py-4 text-center text-xs text-slate-500 border-t border-slate-800/40 bg-slate-950/40 backdrop-blur-md">
+    <p>
+      適合部署於 GitHub Pages • 會考時間依教育部與國中教育會考全國試務會公告為準 • 祝全體考生金榜題名
+    </p>
+  </footer>
+
+  <script>
+    /**
+     * 2027 會考官方預定日期：2027 年 5 月 15 日 上午 08:20
+     * 國中教育會考一般於五月中旬週六登場，第一科 08:20 預備說明
+     */
+    const EXAM_TARGET_DATE = new Date("2027-05-15T08:20:00+08:00").getTime();
+    
+    // 假設國中三年歷程起始基準（以2024年9月1日國一開學為整體進度條算式基準）
+    const PREP_START_DATE = new Date("2024-09-01T08:00:00+08:00").getTime();
+
+    // DOM 元素引用
+    const elDays = document.getElementById("countDays");
+    const elHours = document.getElementById("countHours");
+    const elMinutes = document.getElementById("countMinutes");
+    const elSeconds = document.getElementById("countSeconds");
+    const elMilliseconds = document.getElementById("countMilliseconds");
+
+    const elInlineDays = document.getElementById("inlineDays");
+    const elInlineHours = document.getElementById("inlineHours");
+    const elInlineMinutes = document.getElementById("inlineMinutes");
+    const elInlineSeconds = document.getElementById("inlineSeconds");
+
+    const elProgressBar = document.getElementById("prepProgressBar");
+    const elProgressPercentage = document.getElementById("progressPercentage");
+    const elCurrentClock = document.getElementById("currentClock");
+    const elQuoteDisplay = document.getElementById("quoteDisplay");
+
+    // 激勵名言語錄
+    const MOTIVATIONAL_QUOTES = [
+      "時光不會辜負每一個步履不停的靈魂。",
+      "乾坤未定，你我皆是黑馬！",
+      "今天你多刷一張題本，明天你就多一份從容。",
+      "星光不問趕路人，時光不負有心人。",
+      "把每一道錯題，都變成通往第一志願的階梯。",
+      "熬過無人問津的深夜，終將迎來萬人矚目的盛夏。",
+      "靜下心、坐得住，未來的你一定會感謝現在拼命的自己。",
+      "沉著、冷靜、自信，會考 5A++ 水到渠成！"
+    ];
+
+    let currentQuoteIdx = 0;
+    setInterval(() => {
+      currentQuoteIdx = (currentQuoteIdx + 1) % MOTIVATIONAL_QUOTES.length;
+      elQuoteDisplay.style.opacity = '0';
+      setTimeout(() => {
+        elQuoteDisplay.textContent = MOTIVATIONAL_QUOTES[currentQuoteIdx];
+        elQuoteDisplay.style.opacity = '1';
+      }, 500);
+    }, 9000);
+
+    function updateCountdown() {
+      const now = new Date().getTime();
+      const distance = EXAM_TARGET_DATE - now;
+
+      // 格式化當前時鐘
+      const nowDate = new Date();
+      elCurrentClock.textContent = nowDate.toLocaleTimeString('zh-TW', { hour12: false });
+
+      if (distance <= 0) {
+        // 考試已經開始或結束
+        elDays.textContent = "00";
+        elHours.textContent = "00";
+        elMinutes.textContent = "00";
+        elSeconds.textContent = "00";
+        elMilliseconds.textContent = ".00";
+
+        elInlineDays.textContent = "0";
+        elInlineHours.textContent = "0";
+        elInlineMinutes.textContent = "0";
+        elInlineSeconds.textContent = "0";
+
+        elProgressBar.style.width = "100%";
+        elProgressPercentage.textContent = "100.00%";
+        return;
+      }
+
+      // 核心時間拆解
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      const millis = Math.floor((distance % 1000) / 10); // 兩位毫秒
+
+      // 填寫方塊 (補零)
+      elDays.textContent = String(days).padStart(3, '0');
+      elHours.textContent = String(hours).padStart(2, '0');
+      elMinutes.textContent = String(minutes).padStart(2, '0');
+      elSeconds.textContent = String(seconds).padStart(2, '0');
+      elMilliseconds.textContent = "." + String(millis).padStart(2, '0');
+
+      // 填寫內聯文句
+      elInlineDays.textContent = days;
+      elInlineHours.textContent = hours;
+      elInlineMinutes.textContent = minutes;
+      elInlineSeconds.textContent = seconds;
+
+      // 計算總進度百分比 (從 2024 年秋季開學到 2027 會考)
+      const totalSpan = EXAM_TARGET_DATE - PREP_START_DATE;
+      const elapsedSpan = now - PREP_START_DATE;
+      let percent = (elapsedSpan / totalSpan) * 100;
+      percent = Math.min(Math.max(percent, 0), 100);
+      elProgressBar.style.width = percent.toFixed(2) + "%";
+      elProgressPercentage.textContent = percent.toFixed(2) + "%";
+    }
+
+    // 高頻更新 (約 40fps，使毫秒與秒數順暢流動)
+    setInterval(updateCountdown, 25);
+    updateCountdown();
+
+    /**
+     * 象徵「時間一天天流逝」的動態畫布：
+     * 1. 日夜流光漸層緩慢循環（代表晝夜交替、光陰日復一日）
+     * 2. 飛掠流星與星點軌跡（象徵時間像流星般飛速）
+     * 3. 飄浮的沙漏時光微粒，由上至下沉降流逝
+     */
+    const canvas = document.getElementById("timeStreamCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let width, height;
+    function resizeCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    // 粒子系統：象徵時間流沙
+    const PARTICLES_COUNT = 90;
+    const particles = [];
+
+    class TimeParticle {
+      constructor() {
+        this.reset(true);
+      }
+      reset(initial = false) {
+        this.x = Math.random() * width;
+        this.y = initial ? Math.random() * height : -10;
+        this.size = Math.random() * 2.2 + 0.6;
+        this.speedY = Math.random() * 0.8 + 0.3; // 向下流動的沙漏感
+        this.speedX = (Math.random() - 0.5) * 0.3;
+        this.alpha = Math.random() * 0.7 + 0.2;
+        this.colorHue = Math.random() > 0.4 ? 40 : 210; // 金色或冰藍色光芒
+      }
+      update() {
+        this.y += this.speedY;
+        this.x += this.speedX;
+        if (this.y > height + 10 || this.x < -10 || this.x > width + 10) {
+          this.reset(false);
+        }
+      }
+      draw() {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.colorHue}, 90%, 65%, ${this.alpha})`;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = `hsla(${this.colorHue}, 90%, 60%, 0.8)`;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    for (let i = 0; i < PARTICLES_COUNT; i++) {
+      particles.push(new TimeParticle());
+    }
+
+    // 流星系統：象徵歲月如梭
+    class ShootingStar {
+      constructor() {
+        this.reset();
+      }
+      reset() {
+        this.x = Math.random() * width * 1.2;
+        this.y = Math.random() * (height * 0.4);
+        this.length = Math.random() * 80 + 50;
+        this.speed = Math.random() * 8 + 6;
+        this.angle = Math.PI / 4 + (Math.random() - 0.5) * 0.2; // 向右下方飛掠
+        this.active = false;
+        this.timer = Math.random() * 200 + 100; // 隨機觸發時間
+      }
+      update() {
+        if (!this.active) {
+          this.timer--;
+          if (this.timer <= 0) {
+            this.active = true;
+          }
+          return;
+        }
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed;
+
+        if (this.x > width + 150 || this.y > height + 150) {
+          this.reset();
+        }
+      }
+      draw() {
+        if (!this.active) return;
+        ctx.save();
+        const tailX = this.x - Math.cos(this.angle) * this.length;
+        const tailY = this.y - Math.sin(this.angle) * this.length;
+        const grad = ctx.createLinearGradient(this.x, this.y, tailX, tailY);
+        grad.addColorStop(0, "rgba(255, 255, 255, 0.9)");
+        grad.addColorStop(0.3, "rgba(245, 158, 11, 0.6)");
+        grad.addColorStop(1, "rgba(245, 158, 11, 0)");
+
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(tailX, tailY);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    const shootingStars = [new ShootingStar(), new ShootingStar(), new ShootingStar()];
+
+    // 時間流逝漸層相位（象徵晝夜輪替循環）
+    let cyclePhase = 0;
+
+    function renderTimePassage() {
+      cyclePhase += 0.0006;
+      
+      // 動態漸層背景：在深邃星空藍、晨曦金、午夜紫之間柔和流轉
+      const r1 = Math.sin(cyclePhase) * 15 + 15;
+      const g1 = Math.cos(cyclePhase) * 12 + 20;
+      const b1 = Math.sin(cyclePhase * 0.7) * 20 + 40;
+
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, `rgb(${Math.floor(r1)}, ${Math.floor(g1)}, ${Math.floor(b1)})`);
+      gradient.addColorStop(0.5, "#090d16");
+      gradient.addColorStop(1, "#020617");
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      // 繪製微弱星雲光斑
+      const glowX = width * (0.5 + Math.sin(cyclePhase * 2) * 0.25);
+      const glowY = height * (0.3 + Math.cos(cyclePhase * 1.5) * 0.15);
+      const radial = ctx.createRadialGradient(glowX, glowY, 10, glowX, glowY, width * 0.6);
+      radial.addColorStop(0, "rgba(99, 102, 241, 0.12)");
+      radial.addColorStop(0.6, "rgba(245, 158, 11, 0.04)");
+      radial.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = radial;
+      ctx.fillRect(0, 0, width, height);
+
+      // 更新並繪製時光粒子
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+
+      // 更新並繪製流星
+      shootingStars.forEach(s => {
+        s.update();
+        s.draw();
+      });
+
+      requestAnimationFrame(renderTimePassage);
+    }
+
+    window.onload = function() {
+      renderTimePassage();
+      loadSavedGoal();
+    };
+
+    // 自訂座右銘設定儲存與讀取 (LocalStorage)
+    const btnGoalModal = document.getElementById("btnGoalModal");
+    const btnCloseModal = document.getElementById("btnCloseModal");
+    const btnCancelGoal = document.getElementById("btnCancelGoal");
+    const btnSaveGoal = document.getElementById("btnSaveGoal");
+    const goalModal = document.getElementById("goalModal");
+    const inputTargetMotto = document.getElementById("inputTargetMotto");
+
+    function openModal() {
+      goalModal.classList.remove("hidden");
+    }
+    function closeModal() {
+      goalModal.classList.add("hidden");
+    }
+
+    btnGoalModal.addEventListener("click", openModal);
+    btnCloseModal.addEventListener("click", closeModal);
+    btnCancelGoal.addEventListener("click", closeModal);
+
+    btnSaveGoal.addEventListener("click", () => {
+      const motto = inputTargetMotto.value.trim();
+
+      if (motto) {
+        localStorage.setItem("cap2027_targetMotto", motto);
+        elQuoteDisplay.textContent = motto;
+      }
+      closeModal();
+    });
+
+    function loadSavedGoal() {
+      const savedMotto = localStorage.getItem("cap2027_targetMotto");
+      if (savedMotto) {
+        elQuoteDisplay.textContent = savedMotto;
+        inputTargetMotto.value = savedMotto;
+      }
+    }
+
+    // 全螢幕切換
+    const btnFullscreen = document.getElementById("btnFullscreen");
+    btnFullscreen.addEventListener("click", () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    });
+
+    // 專注讀書計時碼表
+    let studySeconds = 0;
+    let studyTimerInterval = null;
+    const btnStudyToggle = document.getElementById("btnStudyToggle");
+    const studyTimerDisplay = document.getElementById("studyTimerDisplay");
+
+    btnStudyToggle.addEventListener("click", () => {
+      if (studyTimerInterval) {
+        // 暫停
+        clearInterval(studyTimerInterval);
+        studyTimerInterval = null;
+        btnStudyToggle.textContent = "繼續";
+        btnStudyToggle.className = "px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition shadow";
+      } else {
+        // 開始計時
+        studyTimerInterval = setInterval(() => {
+          studySeconds++;
+          const hrs = String(Math.floor(studySeconds / 3600)).padStart(2, '0');
+          const mins = String(Math.floor((studySeconds % 3600) / 60)).padStart(2, '0');
+          const secs = String(studySeconds % 60).padStart(2, '0');
+          studyTimerDisplay.textContent = `${hrs}:${mins}:${secs}`;
+        }, 1000);
+        btnStudyToggle.textContent = "暫停";
+        btnStudyToggle.className = "px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-xs font-semibold text-white transition shadow";
+      }
+    });
+  </script>
+</body>
+</html>
