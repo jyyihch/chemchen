@@ -98,6 +98,13 @@
 
     <!-- 右側功能按鈕區 -->
     <div class="flex items-center space-x-2 sm:space-x-3">
+      <!-- 24小時自習收音機快捷開關 -->
+      <button id="btnQuickRadio" title="開啟專注收音機" class="glass-pill hover:bg-emerald-500/20 hover:text-emerald-300 text-slate-200 px-3.5 py-2 rounded-xl text-sm transition-all duration-300 flex items-center gap-2">
+        <i class="fa-solid fa-radio text-emerald-400" id="radioIconStatus"></i>
+        <span class="hidden sm:inline" id="quickRadioText">讀書收音機</span>
+        <span id="radioPlayingIndicator" class="hidden w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+      </button>
+
       <!-- 沉浸全螢幕切換 -->
       <button id="btnFullscreen" title="全螢幕模式" class="glass-pill hover:bg-white/20 text-slate-200 px-3.5 py-2 rounded-xl text-sm transition-all duration-300 flex items-center gap-2">
         <i class="fa-solid fa-expand"></i>
@@ -213,34 +220,103 @@
       </div>
     </div>
 
-    <!-- 快速備戰時鐘與專注時鐘區 (已移除心中第一志願，改為雙欄自適應) -->
-    <div class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+    <!-- 24小時自習電台面板與即時時鐘區 -->
+    <div class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
       
-      <!-- 當前標準時間 -->
-      <div class="glass-card rounded-2xl p-4 flex items-center space-x-4">
-        <div class="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 text-xl">
-          <i class="fa-regular fa-clock"></i>
+      <!-- 24小時專注收音機 (Bossa Nova / 古典 / 法國香頌) -->
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden md:col-span-2">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center space-x-3">
+            <div id="radioBadge" class="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg transition-colors">
+              <i class="fa-solid fa-broadcast-tower"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-400 font-medium">24H 專注讀書收音機</span>
+                <span id="radioLiveTag" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono hidden">LIVE</span>
+              </div>
+              <div id="radioStationTitle" class="text-sm font-bold text-slate-200 truncate max-w-[200px] sm:max-w-xs">
+                點擊播放開始聆聽
+              </div>
+            </div>
+          </div>
+
+          <!-- 播放/暫停 按鈕與音波動畫 -->
+          <div class="flex items-center gap-2">
+            <!-- 仿音波跳動小動效 -->
+            <div id="soundWaves" class="hidden items-end gap-0.5 h-5 px-1">
+              <span class="w-1 bg-emerald-400 rounded-full animate-bounce h-3"></span>
+              <span class="w-1 bg-emerald-400 rounded-full animate-bounce h-5" style="animation-delay: 0.15s"></span>
+              <span class="w-1 bg-emerald-400 rounded-full animate-bounce h-2" style="animation-delay: 0.3s"></span>
+              <span class="w-1 bg-emerald-400 rounded-full animate-bounce h-4" style="animation-delay: 0.45s"></span>
+            </div>
+
+            <button id="btnRadioPlay" class="w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 transition transform active:scale-95">
+              <i class="fa-solid fa-play text-sm" id="btnRadioPlayIcon"></i>
+            </button>
+          </div>
         </div>
-        <div>
-          <div class="text-xs text-slate-400">台灣標準時間 (UTC+8)</div>
-          <div id="currentClock" class="font-mono-num text-lg font-bold text-slate-200">00:00:00</div>
+
+        <!-- 電台頻道選擇與音量控制列 -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
+          <!-- 頻道切換標籤 -->
+          <div class="flex flex-wrap items-center gap-1 sm:gap-2">
+            <button class="channel-btn active-channel px-2.5 py-1 rounded-lg text-xs font-medium border border-emerald-500/50 bg-emerald-500/20 text-emerald-300 transition" data-channel="chanson">
+              🥐 法國香頌
+            </button>
+            <button class="channel-btn px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700 hover:border-slate-500 text-slate-300 transition" data-channel="bossa">
+              ☕ Bossa Nova
+            </button>
+            <button class="channel-btn px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700 hover:border-slate-500 text-slate-300 transition" data-channel="classical">
+              🎻 瑞士古典
+            </button>
+            <button class="channel-btn px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700 hover:border-slate-500 text-slate-300 transition" data-channel="lofi">
+              🎧 Lofi 自習
+            </button>
+          </div>
+
+          <!-- 音量控制 -->
+          <div class="flex items-center space-x-2 text-slate-400 text-xs">
+            <i class="fa-solid fa-volume-low text-slate-400" id="volumeIcon"></i>
+            <input type="range" id="radioVolume" min="0" max="1" step="0.05" value="0.7" 
+                   class="w-16 sm:w-20 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+          </div>
         </div>
+
+        <!-- 隱藏音訊元素 -->
+        <audio id="studyRadioAudio" preload="none"></audio>
       </div>
 
-      <!-- 學習時數計時/專注時鐘 -->
-      <div class="glass-card rounded-2xl p-4 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-xl">
-            <i class="fa-solid fa-hourglass-half"></i>
-          </div>
-          <div>
-            <div class="text-xs text-slate-400">今日專注時間</div>
-            <div id="studyTimerDisplay" class="font-mono-num text-lg font-bold text-slate-200">00:00:00</div>
+      <!-- 快速備戰時鐘與專注時鐘區 (右側合併卡片) -->
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between space-y-3">
+        <!-- 台灣標準時間 -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 text-sm">
+              <i class="fa-regular fa-clock"></i>
+            </div>
+            <div>
+              <div class="text-[10px] text-slate-400">標準時間 (UTC+8)</div>
+              <div id="currentClock" class="font-mono-num text-sm font-bold text-slate-200">00:00:00</div>
+            </div>
           </div>
         </div>
-        <button id="btnStudyToggle" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition shadow">
-          開始
-        </button>
+
+        <!-- 今日專注時鐘 -->
+        <div class="flex items-center justify-between pt-2 border-t border-slate-800/80">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-sm">
+              <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+            <div>
+              <div class="text-[10px] text-slate-400">今日專注時間</div>
+              <div id="studyTimerDisplay" class="font-mono-num text-sm font-bold text-slate-200">00:00:00</div>
+            </div>
+          </div>
+          <button id="btnStudyToggle" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition shadow">
+            開始
+          </button>
+        </div>
       </div>
 
     </div>
@@ -550,7 +626,191 @@
     window.onload = function() {
       renderTimePassage();
       loadSavedGoal();
+      initRadioPlayer();
     };
+
+    /**
+     * 24小時收音機廣播核心設定：
+     * 全面升級為全天候穩定、HTTPS 安全加密且支援跨域的全球優質音樂串流
+     * 並加入多重備用訊號源 (Failover Streams)，斷線時自動切換
+     */
+    const RADIO_CHANNELS = {
+      chanson: {
+        name: "法國香頌・巴黎時光 (FIP Sacré Français)",
+        desc: "法國國家廣播 FIP 官方 24H 優雅香頌與浪漫吉他手風琴",
+        streams: [
+          "https://icecast.radiofrance.fr/fipsacrefrancais-midfi.mp3",
+          "https://scdn.nrjaudio.fm/audio1/fr/30601/mp3_128.mp3",
+          "https://icecast.radiofrance.fr/fip-midfi.mp3"
+        ]
+      },
+      bossa: {
+        name: "Bossa Nova Cafe 慵懶咖啡館",
+        desc: "輕柔吉他與巴薩諾瓦，讓讀書節奏更加沉穩從容",
+        streams: [
+          "https://stream.zeno.fm/f3wvbbqmdg8uv",
+          "https://streaming.positivity.radio/pr/bossanova/icecast.audio"
+        ]
+      },
+      classical: {
+        name: "瑞士古典廣播 (Swiss Classical)",
+        desc: "巴哈、莫札特、蕭邦純樂器演奏，無主持人插播的高專注頻道",
+        streams: [
+          "https://stream.srg-ssr.ch/m/rsc_de/mp3_128",
+          "https://streams.ilovemusic.de/iloveradio16.mp3"
+        ]
+      },
+      lofi: {
+        name: "Lofi 讀書專注節拍 (Chill Beats)",
+        desc: "溫暖柔和的低傳真節奏，提神且穩定自習專注力",
+        streams: [
+          "https://streams.ilovemusic.de/iloveradio17.mp3",
+          "https://stream.zeno.fm/0r0xa792kwzuv"
+        ]
+      }
+    };
+
+    let currentChannelKey = 'chanson';
+    let currentStreamIdx = 0;
+    let isRadioPlaying = false;
+
+    const radioAudio = document.getElementById("studyRadioAudio");
+    const btnRadioPlay = document.getElementById("btnRadioPlay");
+    const btnRadioPlayIcon = document.getElementById("btnRadioPlayIcon");
+    const radioStationTitle = document.getElementById("radioStationTitle");
+    const soundWaves = document.getElementById("soundWaves");
+    const radioLiveTag = document.getElementById("radioLiveTag");
+    const radioVolume = document.getElementById("radioVolume");
+    const volumeIcon = document.getElementById("volumeIcon");
+    const btnQuickRadio = document.getElementById("btnQuickRadio");
+    const radioPlayingIndicator = document.getElementById("radioPlayingIndicator");
+    const quickRadioText = document.getElementById("quickRadioText");
+    const radioIconStatus = document.getElementById("radioIconStatus");
+
+    function getActiveStreamUrl() {
+      const channel = RADIO_CHANNELS[currentChannelKey];
+      if (!channel || !channel.streams || channel.streams.length === 0) return "";
+      return channel.streams[currentStreamIdx % channel.streams.length];
+    }
+
+    function initRadioPlayer() {
+      // 預設音量與初始站名
+      radioAudio.volume = parseFloat(radioVolume.value);
+      radioStationTitle.textContent = RADIO_CHANNELS[currentChannelKey].name;
+
+      // 頻道切換標籤點擊事件
+      document.querySelectorAll(".channel-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const targetChannel = btn.getAttribute("data-channel");
+          switchChannel(targetChannel);
+        });
+      });
+
+      // 播放/暫停事件
+      btnRadioPlay.addEventListener("click", toggleRadioPlay);
+      btnQuickRadio.addEventListener("click", toggleRadioPlay);
+
+      // 音量調整
+      radioVolume.addEventListener("input", (e) => {
+        const val = parseFloat(e.target.value);
+        radioAudio.volume = val;
+        if (val === 0) {
+          volumeIcon.className = "fa-solid fa-volume-xmark text-slate-500";
+        } else if (val < 0.5) {
+          volumeIcon.className = "fa-solid fa-volume-low text-slate-400";
+        } else {
+          volumeIcon.className = "fa-solid fa-volume-high text-slate-300";
+        }
+      });
+
+      // 容錯自動換源機制：若原音訊來源連線受阻，自動切換至備用串流
+      radioAudio.addEventListener("error", () => {
+        if (isRadioPlaying) {
+          const channel = RADIO_CHANNELS[currentChannelKey];
+          if (channel && currentStreamIdx + 1 < channel.streams.length) {
+            currentStreamIdx++;
+            radioStationTitle.textContent = "自動切換備用訊號源...";
+            radioAudio.src = getActiveStreamUrl();
+            radioAudio.play().then(() => {
+              radioStationTitle.textContent = channel.name;
+            }).catch(() => {});
+          } else {
+            radioStationTitle.textContent = "訊號重新連線中，請稍候...";
+            setTimeout(() => {
+              currentStreamIdx = 0;
+              radioAudio.src = getActiveStreamUrl();
+              radioAudio.play().catch(() => {});
+            }, 3000);
+          }
+        }
+      });
+    }
+
+    function switchChannel(channelKey) {
+      if (!RADIO_CHANNELS[channelKey]) return;
+      currentChannelKey = channelKey;
+      currentStreamIdx = 0; // 重設為該頻道首選串流
+
+      // 更新頻道標籤外觀樣式
+      document.querySelectorAll(".channel-btn").forEach(btn => {
+        if (btn.getAttribute("data-channel") === channelKey) {
+          btn.className = "channel-btn active-channel px-2.5 py-1 rounded-lg text-xs font-medium border border-emerald-500/50 bg-emerald-500/20 text-emerald-300 transition";
+        } else {
+          btn.className = "channel-btn px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700 hover:border-slate-500 text-slate-300 transition";
+        }
+      });
+
+      radioStationTitle.textContent = RADIO_CHANNELS[channelKey].name;
+
+      if (isRadioPlaying) {
+        radioAudio.src = getActiveStreamUrl();
+        radioStationTitle.textContent = "連線載入中...";
+        radioAudio.play().then(() => {
+          radioStationTitle.textContent = RADIO_CHANNELS[channelKey].name;
+        }).catch(err => {
+          console.warn("廣播切換載入受阻", err);
+        });
+      }
+    }
+
+    function toggleRadioPlay() {
+      if (isRadioPlaying) {
+        // 暫停廣播
+        radioAudio.pause();
+        isRadioPlaying = false;
+
+        // UI 狀態切換為暫停
+        btnRadioPlayIcon.className = "fa-solid fa-play text-sm";
+        btnRadioPlay.className = "w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 transition transform active:scale-95";
+        soundWaves.classList.add("hidden");
+        soundWaves.classList.remove("flex");
+        radioLiveTag.classList.add("hidden");
+        radioPlayingIndicator.classList.add("hidden");
+        quickRadioText.textContent = "讀書收音機";
+      } else {
+        // 開始播放廣播
+        const streamUrl = getActiveStreamUrl();
+        if (!radioAudio.src || radioAudio.src !== streamUrl) {
+          radioAudio.src = streamUrl;
+        }
+
+        radioStationTitle.textContent = "連線載入中...";
+        radioAudio.play().then(() => {
+          isRadioPlaying = true;
+          radioStationTitle.textContent = RADIO_CHANNELS[currentChannelKey].name;
+          btnRadioPlayIcon.className = "fa-solid fa-pause text-sm";
+          btnRadioPlay.className = "w-10 h-10 rounded-xl bg-amber-600 hover:bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-600/30 transition transform active:scale-95";
+          soundWaves.classList.remove("hidden");
+          soundWaves.classList.add("flex");
+          radioLiveTag.classList.remove("hidden");
+          radioPlayingIndicator.classList.remove("hidden");
+          quickRadioText.textContent = "廣播播放中";
+        }).catch(err => {
+          console.error("播放被瀏覽器阻擋或網路問題:", err);
+          radioStationTitle.textContent = "點擊播放以啟用音訊串流";
+        });
+      }
+    }
 
     // 自訂座右銘設定儲存與讀取 (LocalStorage)
     const btnGoalModal = document.getElementById("btnGoalModal");
