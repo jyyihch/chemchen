@@ -10,5 +10,6 @@ https://jyyihch.github.io/chemchen/snowflare.html
 
 ## 2027-20260910-使用gemini產生的會考倒數程式
 https://jyyihch.github.io/chemchen/2027.html
+* 20260925更新，加入電台。
 
 注意 setting --> pages --> branch 資料夾要設在/(root) 不能在 /docs哦
