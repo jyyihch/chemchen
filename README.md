@@ -12,4 +12,6 @@ https://jyyihch.github.io/chemchen/snowflare.html
 https://jyyihch.github.io/chemchen/2027.html
 * 20260925更新，加入電台。
 
+## school.html-20260925-使用gemini產生的自編教材導航
+https://jyyihch.github.io/chemchen/school.html
 注意 setting --> pages --> branch 資料夾要設在/(root) 不能在 /docs哦
