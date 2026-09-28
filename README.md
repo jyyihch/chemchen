@@ -14,4 +14,7 @@ https://jyyihch.github.io/chemchen/2027.html
 
 ## school.html-20260925-使用gemini產生的自編教材導航
 https://jyyihch.github.io/chemchen/school.html
+
+## ci.html-20260928-使用chatgpt產生的退休倒數
+https://jyyihch.github.io/chemchen/ci.html
 注意 setting --> pages --> branch 資料夾要設在/(root) 不能在 /docs哦
